@@ -1,0 +1,35 @@
+-- Fast ClickDetector Fire Script
+-- This script rapidly fires all ClickDetectors in workspace
+
+local function fireClickDetector(clickDetector)
+    if clickDetector and clickDetector:IsA("ClickDetector") then
+        -- Fire the ClickDetector
+        fireclickdetector(clickDetector)
+    end
+end
+
+local function fireAllClickDetectors()
+    -- Fire ClickDetectors in workspace.other
+    if workspace:FindFirstChild("other") then
+        for _, obj in pairs(workspace.other:GetDescendants()) do
+            if obj:IsA("ClickDetector") then
+                fireClickDetector(obj)
+            end
+        end
+    end
+    
+    -- Fire ClickDetectors in workspace.Clicks
+    if workspace:FindFirstChild("Clicks") then
+        for _, obj in pairs(workspace.Clicks:GetDescendants()) do
+            if obj:IsA("ClickDetector") then
+                fireClickDetector(obj)
+            end
+        end
+    end
+end
+
+-- Main loop - fires at maximum speed
+while true do
+    fireAllClickDetectors()
+    wait() -- Minimal wait for maximum speed
+end
