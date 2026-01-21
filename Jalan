@@ -1,0 +1,15 @@
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+-- Koordinat sasaran
+local targetPos = Vector3.new(16.9897594, 5.02259684, 1.55352592)
+
+-- Loop yang agresif (0.1 saat sekali dia check)
+while true do
+    humanoid:MoveTo(targetPos)
+    
+    -- Kita guna task.wait pendek, bukan Wait() sampai habis jalan
+    -- Ini supaya command MoveTo tu sentiasa kena "spam" balik
+    task.wait(0.1)
+end
