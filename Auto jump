@@ -1,0 +1,416 @@
+-- Auto Jump Script dengan Delta Time
+-- Letakkan script ni dalam StarterGui atau StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+-- Variables untuk loop
+local loopEnabled = false
+local jumpSpeed = 10 -- Jumps per second
+local timeSinceLastJump = 0
+
+-- Buat ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AutoJumpGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Buat Main Frame (UI Panel)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 250, 0, 270)
+mainFrame.Position = UDim2.new(0.5, -125, 0.5, -135)
+mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+mainFrame.BorderSizePixel = 2
+mainFrame.BorderColor3 = Color3.fromRGB(0, 255, 0)
+mainFrame.Visible = false
+mainFrame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = mainFrame
+
+-- Buat Title Label
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "Title"
+titleLabel.Size = UDim2.new(1, 0, 0, 40)
+titleLabel.Position = UDim2.new(0, 0, 0, 0)
+titleLabel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+titleLabel.Text = "Auto Jump (Delta)"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextSize = 20
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.Parent = mainFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 10)
+titleCorner.Parent = titleLabel
+
+-- Buat Toggle Button (Loop On/Off)
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.Size = UDim2.new(0, 200, 0, 50)
+toggleButton.Position = UDim2.new(0.5, -100, 0, 55)
+toggleButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+toggleButton.Text = "Loop: OFF"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.TextSize = 18
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.Parent = mainFrame
+
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 8)
+buttonCorner.Parent = toggleButton
+
+-- Buat Speed Label
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Name = "SpeedLabel"
+speedLabel.Size = UDim2.new(1, 0, 0, 25)
+speedLabel.Position = UDim2.new(0, 0, 0, 115)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "Speed: 10 jumps/sec"
+speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedLabel.TextSize = 15
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.Parent = mainFrame
+
+-- Buat Custom Input Frame
+local inputFrame = Instance.new("Frame")
+inputFrame.Name = "InputFrame"
+inputFrame.Size = UDim2.new(0, 200, 0, 35)
+inputFrame.Position = UDim2.new(0.5, -100, 0, 145)
+inputFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+inputFrame.BorderSizePixel = 0
+inputFrame.Parent = mainFrame
+
+local inputFrameCorner = Instance.new("UICorner")
+inputFrameCorner.CornerRadius = UDim.new(0, 6)
+inputFrameCorner.Parent = inputFrame
+
+-- Buat TextBox untuk input custom speed
+local speedInput = Instance.new("TextBox")
+speedInput.Name = "SpeedInput"
+speedInput.Size = UDim2.new(0, 120, 1, -4)
+speedInput.Position = UDim2.new(0, 2, 0, 2)
+speedInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+speedInput.BorderSizePixel = 0
+speedInput.Text = "10"
+speedInput.PlaceholderText = "Jumps per second"
+speedInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedInput.TextSize = 16
+speedInput.Font = Enum.Font.Gotham
+speedInput.ClearTextOnFocus = false
+speedInput.Parent = inputFrame
+
+local inputCorner = Instance.new("UICorner")
+inputCorner.CornerRadius = UDim.new(0, 5)
+inputCorner.Parent = speedInput
+
+-- Buat Set Button
+local setButton = Instance.new("TextButton")
+setButton.Name = "SetButton"
+setButton.Size = UDim2.new(0, 70, 1, -4)
+setButton.Position = UDim2.new(0, 126, 0, 2)
+setButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+setButton.Text = "SET"
+setButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+setButton.TextSize = 14
+setButton.Font = Enum.Font.GothamBold
+setButton.Parent = inputFrame
+
+local setCorner = Instance.new("UICorner")
+setCorner.CornerRadius = UDim.new(0, 5)
+setCorner.Parent = setButton
+
+-- Buat Speed Slider Background
+local sliderBg = Instance.new("Frame")
+sliderBg.Name = "SliderBg"
+sliderBg.Size = UDim2.new(0, 200, 0, 10)
+sliderBg.Position = UDim2.new(0.5, -100, 0, 190)
+sliderBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+sliderBg.BorderSizePixel = 0
+sliderBg.Parent = mainFrame
+
+local sliderBgCorner = Instance.new("UICorner")
+sliderBgCorner.CornerRadius = UDim.new(0, 5)
+sliderBgCorner.Parent = sliderBg
+
+-- Buat Speed Slider Fill
+local sliderFill = Instance.new("Frame")
+sliderFill.Name = "SliderFill"
+sliderFill.Size = UDim2.new(0.1, 0, 1, 0)
+sliderFill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+sliderFill.BorderSizePixel = 0
+sliderFill.Parent = sliderBg
+
+local sliderFillCorner = Instance.new("UICorner")
+sliderFillCorner.CornerRadius = UDim.new(0, 5)
+sliderFillCorner.Parent = sliderFill
+
+-- Buat Speed Slider Button
+local sliderButton = Instance.new("TextButton")
+sliderButton.Name = "SliderButton"
+sliderButton.Size = UDim2.new(0, 20, 0, 20)
+sliderButton.Position = UDim2.new(0.1, -10, 0.5, -10)
+sliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+sliderButton.Text = ""
+sliderButton.Parent = sliderBg
+
+local sliderButtonCorner = Instance.new("UICorner")
+sliderButtonCorner.CornerRadius = UDim.new(1, 0)
+sliderButtonCorner.Parent = sliderButton
+
+-- Buat Speed Preset Buttons
+local speedPresets = {
+    {name = "Extreme", speed = 100},
+    {name = "Laju", speed = 20},
+    {name = "Normal", speed = 10},
+    {name = "Slow", speed = 2}
+}
+
+local presetFrame = Instance.new("Frame")
+presetFrame.Name = "PresetFrame"
+presetFrame.Size = UDim2.new(1, -20, 0, 35)
+presetFrame.Position = UDim2.new(0, 10, 0, 220)
+presetFrame.BackgroundTransparency = 1
+presetFrame.Parent = mainFrame
+
+local presetLayout = Instance.new("UIListLayout")
+presetLayout.FillDirection = Enum.FillDirection.Horizontal
+presetLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+presetLayout.Padding = UDim.new(0, 5)
+presetLayout.Parent = presetFrame
+
+for i, preset in ipairs(speedPresets) do
+    local presetBtn = Instance.new("TextButton")
+    presetBtn.Name = "Preset" .. i
+    presetBtn.Size = UDim2.new(0, 52, 0, 35)
+    presetBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    presetBtn.Text = preset.name:sub(1, 1)
+    presetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    presetBtn.TextSize = 14
+    presetBtn.Font = Enum.Font.GothamBold
+    presetBtn.Parent = presetFrame
+    
+    local presetCorner = Instance.new("UICorner")
+    presetCorner.CornerRadius = UDim.new(0, 5)
+    presetCorner.Parent = presetBtn
+    
+    presetBtn.MouseButton1Click:Connect(function()
+        jumpSpeed = preset.speed
+        speedInput.Text = tostring(jumpSpeed)
+        local percentage = math.clamp(jumpSpeed / 100, 0, 1)
+        sliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+        sliderButton.Position = UDim2.new(percentage, -10, 0.5, -10)
+        speedLabel.Text = "Speed: " .. jumpSpeed .. " jumps/sec"
+    end)
+end
+
+-- Buat Close Button
+local closeButton = Instance.new("TextButton")
+closeButton.Name = "CloseButton"
+closeButton.Size = UDim2.new(0, 30, 0, 30)
+closeButton.Position = UDim2.new(1, -35, 0, 5)
+closeButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+closeButton.Text = "X"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.TextSize = 18
+closeButton.Font = Enum.Font.GothamBold
+closeButton.Parent = mainFrame
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 5)
+closeCorner.Parent = closeButton
+
+-- Buat Open Button
+local openButton = Instance.new("TextButton")
+openButton.Name = "OpenButton"
+openButton.Size = UDim2.new(0, 120, 0, 40)
+openButton.Position = UDim2.new(0, 10, 0, 10)
+openButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+openButton.Text = "Open Menu"
+openButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+openButton.TextSize = 16
+openButton.Font = Enum.Font.GothamBold
+openButton.Parent = screenGui
+
+local openCorner = Instance.new("UICorner")
+openCorner.CornerRadius = UDim.new(0, 8)
+openCorner.Parent = openButton
+
+-- Function update speed label dan slider
+local function updateFromSpeed(speed)
+    speedLabel.Text = "Speed: " .. speed .. " jumps/sec"
+    local percentage = math.clamp(speed / 100, 0, 1)
+    sliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+    sliderButton.Position = UDim2.new(percentage, -10, 0.5, -10)
+end
+
+-- Set Button Click Handler
+setButton.MouseButton1Click:Connect(function()
+    local inputValue = tonumber(speedInput.Text)
+    
+    if inputValue and inputValue > 0 then
+        jumpSpeed = inputValue
+        updateFromSpeed(jumpSpeed)
+        
+        setButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+        setButton.Text = "✓"
+        wait(0.3)
+        setButton.Text = "SET"
+        setButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    else
+        setButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+        setButton.Text = "✗"
+        wait(0.5)
+        setButton.Text = "SET"
+        setButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        speedInput.Text = tostring(jumpSpeed)
+    end
+end)
+
+-- Enter key support
+speedInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        setButton.MouseButton1Click:Fire()
+    end
+end)
+
+-- Slider dragging functionality
+local sliderDragging = false
+
+sliderButton.MouseButton1Down:Connect(function()
+    sliderDragging = true
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        sliderDragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if sliderDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local mousePos = UserInputService:GetMouseLocation().X
+        local sliderPos = sliderBg.AbsolutePosition.X
+        local sliderSize = sliderBg.AbsoluteSize.X
+        
+        local relativePos = math.clamp((mousePos - sliderPos) / sliderSize, 0, 1)
+        
+        sliderFill.Size = UDim2.new(relativePos, 0, 1, 0)
+        sliderButton.Position = UDim2.new(relativePos, -10, 0.5, -10)
+        
+        -- Calculate speed: 1 to 100 jumps per second
+        jumpSpeed = math.floor(1 + relativePos * 99)
+        
+        speedInput.Text = tostring(jumpSpeed)
+        speedLabel.Text = "Speed: " .. jumpSpeed .. " jumps/sec"
+    end
+end)
+
+-- Delta-based jump loop
+local jumpConnection
+local function startJumpLoop()
+    timeSinceLastJump = 0
+    jumpConnection = RunService.Heartbeat:Connect(function(deltaTime)
+        if loopEnabled and humanoid and humanoid.Health > 0 then
+            timeSinceLastJump = timeSinceLastJump + deltaTime
+            local jumpInterval = 1 / jumpSpeed
+            
+            if timeSinceLastJump >= jumpInterval then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                timeSinceLastJump = timeSinceLastJump - jumpInterval
+            end
+        end
+    end)
+end
+
+local function stopJumpLoop()
+    if jumpConnection then
+        jumpConnection:Disconnect()
+        jumpConnection = nil
+    end
+    timeSinceLastJump = 0
+end
+
+-- Toggle Button Click
+toggleButton.MouseButton1Click:Connect(function()
+    loopEnabled = not loopEnabled
+    
+    if loopEnabled then
+        toggleButton.Text = "Loop: ON"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(50, 255, 50)
+        startJumpLoop()
+    else
+        toggleButton.Text = "Loop: OFF"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+        stopJumpLoop()
+    end
+end)
+
+-- Open Button Click
+openButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = true
+    openButton.Visible = false
+end)
+
+-- Close Button Click
+closeButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+    openButton.Visible = true
+end)
+
+-- Draggable UI
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- Handle character respawn
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    humanoid = character:WaitForChild("Humanoid")
+    
+    if loopEnabled then
+        stopJumpLoop()
+        wait(0.5)
+        startJumpLoop()
+    end
+end)
+
+print("Auto Jump Script (Delta Time) loaded!")
